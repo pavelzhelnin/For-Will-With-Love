@@ -5,7 +5,6 @@ file = jldopen("example.jld2", "r")
 nEvents = file["event_num"] 
 
 ns_per_sample = 2
-spe_run = false 
 
 function calc_baseline(w::Vector{Float64},xmin::Int,width::Int)
     calc_integral(w,xmin,width) / width 
@@ -46,21 +45,6 @@ function calc_CFD_sample(w::Vector{Float64}, pct_threshold::Float64)
     return -1 
 end 
 
-function calc_qmt(w::Vector{Float64},xmin::Int,width::Int)
-    qmt = 0.0; 
-
-    for i in xmin:width+xmin 
-        try 
-            qmt += w[i]*i
-        catch 
-            return -999999
-        end 
-    end 
-
-    return qmt 
-
-end 
-
 jldopen("output_example.jld2","w") do output_file
 
 for eventID in 1:nEvents-1
@@ -77,20 +61,17 @@ for eventID in 1:nEvents-1
 
     group["saturated"] = saturated 
 
-    baseline_width = 500
-
-    if spe_run == true 
-        baseline_width = 250
-    end 
-
+    baseline_width = 80
     baseline_xmin = 0
 
     baseline = calc_baseline(trace,baseline_xmin,baseline_width)
 
     group["baseline"] = baseline 
 
+    trace = trace - baseline 
+    
     for i in eachindex(trace)
-        trace[i] = -1 * (trace[i] - baseline)
+        global trace[i] = (trace[i] - baseline)
     end 
 
     waveform_max_time = findall(x->x == maximum(trace), trace) * ns_per_sample
@@ -104,48 +85,29 @@ for eventID in 1:nEvents-1
 
     group["event_time"] = event_time
 
-
-    integral_xmin = 700
-	integral_width = 2500
-    integral_xmin_dy = integral_xmin 
-	integral_width_dy = 750
-
-    if spe_run == true 
-        integral_xmin = 275
-        integral_width = 75
-    end 
+    integral_xmin = 87
+	integral_width = 35
 
     integral = calc_integral(trace, integral_xmin, integral_width)
 
     group["integral"] = integral 
 
-    pretrace_integral_xmin = baseline_xmin + baseline_width
-    pretrace_integral_width = 200
+    pretrace_integral_xmin = 0
+    pretrace_integral_width = 7
 
     pretrace_integral = calc_integral(trace, pretrace_integral_xmin, pretrace_integral_width)
 
     group["pretrace_integral"] = pretrace_integral
-
-    if spe_run == true 
-        pretrace_integral = -999
-    end 
 
     posttrace_integral = 0
 
     group["posttrace_integral"] = posttrace_integral
 
     fast_xmin = integral_xmin
-	fast_width = 200 / ns_per_sample
+	fast_width = 20 / ns_per_sample
 	psd = calc_integral(trace, fast_xmin, Int(fast_width)) / integral
 
     group["psd"] = psd 
-
-    integral_xmin = 700
-    integral_width = 2500
-
-    qmt = ns_per_sample * calc_qmt(trace, integral_xmin, integral_width)
-
-    group["qmt"] = qmt 
 
     if saturated == true 
         prev_evt_sat = true
