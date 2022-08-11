@@ -1,5 +1,13 @@
 using Pkg;
 using JLD2;
+"""
+takes binary data file as input and outputs a jld2 file 
+"""
+
+"""
+julia arrays iterate from 1 so to access the first element in an array or vector 
+you write array[1] not array[0]
+"""
 
 include("$(@__DIR__)/wavedumpReader.jl")
 
@@ -12,9 +20,10 @@ const ns_per_sample = 2
 
 println("Processing file: ", infile_name)
 
-function get_trigger(wd::wdReader)
-    getNextTrigger(wd)
-end
+"""
+takes a trace vector, and bounds for the trace section of interest as arguments 
+outputs the baseline to later be subtracted from the trace
+"""
 
 function calc_baseline(w::Vector{Float64},xmin::Int,width::Int)
     calc_integral(w,xmin,width) / width 
@@ -78,10 +87,15 @@ function trace_loop(outfile::String)
 
                 group["saturated"] = saturated 
 
+                #arbitrary bounds as decided by Will
                 baseline_width = 80
                 baseline_xmin = 1
 
-                baseline = calc_baseline(trace,baseline_xmin,baseline_width)
+                baseline = calc_baseline(
+                    trace,
+                    baseline_xmin,
+                    baseline_width
+                    )
 
                 group["baseline"] = baseline 
 
@@ -100,13 +114,18 @@ function trace_loop(outfile::String)
                 group["waveform_max"] = waveform_max
                 group["event_time"] = event_time
 
+                #arbitrary bounds as decided by Will
                 integral_xmin = 87
                 integral_width = 35
 
-                integral = calc_integral(trace, integral_xmin, integral_width)
+                integral = calc_integral(trace, 
+                    integral_xmin, 
+                    integral_width
+                    )
 
                 group["integral"] = integral 
 
+                #arbitrary bounds as decided by Will
                 pretrace_integral_xmin = 1
                 pretrace_integral_width = 8
 
